@@ -1,0 +1,73 @@
+name: SharePoint Sync & Deploy
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  sync-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Download from SharePoint
+        id: download
+        env:
+          SHAREPOINT_SITE_URL: ${{ secrets.SHAREPOINT_SITE_URL }}
+          SHAREPOINT_FOLDER: ${{ secrets.SHAREPOINT_FOLDER }}
+          EXCEL_FILENAME: ${{ secrets.EXCEL_FILENAME }}
+          SHAREPOINT_USERNAME: ${{ secrets.SHAREPOINT_USERNAME }}
+          SHAREPOINT_PASSWORD: ${{ secrets.SHAREPOINT_PASSWORD }}
+        run: |
+          python scripts/sync-sharepoint.py
+        continue-on-error: true
+      
+      - name: Check if file changed
+        id: check
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Extract data from Excel
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          python scripts/extract-data.py
+      
+      - name: Update HTML
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          python scripts/update-html.py
+      
+      - name: Commit changes
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/ index.html
+          git diff --staged --quiet || git commit -m "🔄 Auto-update from SharePoint ($(date '+%Y-%m-%d %H:%M'))"
+      
+      - name: Push changes
+        if: steps.check.outputs.changed == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
