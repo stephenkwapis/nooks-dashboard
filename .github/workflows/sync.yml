@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -25,16 +23,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-      
-      - name: Download from SharePoint
-        env:
-          SHAREPOINT_SITE_URL: ${{ secrets.SHAREPOINT_SITE_URL }}
-          SHAREPOINT_FOLDER: ${{ secrets.SHAREPOINT_FOLDER }}
-          EXCEL_FILENAME: ${{ secrets.EXCEL_FILENAME }}
-          SHAREPOINT_USERNAME: ${{ secrets.SHAREPOINT_USERNAME }}
-          SHAREPOINT_PASSWORD: ${{ secrets.SHAREPOINT_PASSWORD }}
-        run: |
-          python scripts/sync-sharepoint.py
       
       - name: Extract data from Excel
         run: |
@@ -48,7 +36,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/ index.html
+          git add index.html
           git diff --staged --quiet || git commit -m "🔄 Auto-update from SharePoint ($(date '+%Y-%m-%d %H:%M'))"
       
       - name: Push changes
