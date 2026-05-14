@@ -40,7 +40,5 @@ jobs:
           git diff --staged --quiet || git commit -m "🔄 Auto-update from SharePoint ($(date '+%Y-%m-%d %H:%M'))"
       
       - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
+        run: |
+          git push https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/stephenkwapis/nooks-dashboard.git main
